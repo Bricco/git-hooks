@@ -1,7 +1,7 @@
 # git-hooks
 Some Git hooks that can be useful to have.
 
-## 1. drupal-php-pre-commit ##
+### 1. drupal-php-pre-commit 3
 
 Checks for php parse-errors and devel/xdebug debug code before committing.
 
