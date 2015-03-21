@@ -32,7 +32,7 @@ do
         fi
 
         # Check for devel
-        ERRORS=$(grep -nHE "dsm|kpr|dpm|dpr|ddbug_backtrace\(" "$ROOT_DIR$file" | \
+        ERRORS=$(grep -nHE "dsm|kpr|dpm|dpr|ddebug_backtrace\(" "$ROOT_DIR$file" | \
                  sed -e 's/^/Found Devel Statment : /')
         if [ "$ERRORS" != "" ]; then
             if [ "$ERRORS_BUFFER" != "" ]; then
