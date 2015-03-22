@@ -6,6 +6,11 @@ Some Git hooks that can be useful to have.
 git clone https://github.com/Bricco/git-hooks.git
 cp git-hooks/* MY-PROJECT/.git/hooks/
 chmod +x MY-PROJECT/.git/hooks/*
+
+git config --add jira.project JRE
+git config --add jira.user admin.anderssson
+git config --add jira.password mysecret
+git config --add jira.url https://mycompany.atlassian.net
 ```
 
 ### 1. pre-commit
