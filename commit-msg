@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# git commit-msg hook
+# Exempel:
+# git commit -m "BC Skapa ärende från git #time 2h 15m"
+# Skapar ett BC-ärende och loggar 2h 15m
+
+VARS=('project' 'user' 'password' 'url')
+ERROR_MESSAGE=""
+
+for NAME in ${VARS[@]}; do
+    eval $NAME="$(git config --get jira.$NAME)"
+    if [[ "${!NAME}" == "" ]]; then
+      ERROR_MESSAGE="$ERROR_MESSAGE\ngit config --add jira.$NAME <$NAME>"
+    fi
+done
+
+if [[ "$ERROR_MESSAGE" != "" ]]; then
+  echo -e "Unable to connect to JIRA. Fix the following configuration:$ERROR_MESSAGE"
+  exit 0
+fi
+
+DESCRIPTION=""
+MESSAGE=$(grep "^$project " $1);
+
+if [[ "$MESSAGE" == "" ]]; then
+  exit 0
+fi
+
+SUMMARY=$(echo $MESSAGE | sed "s/$project \([^#]*\).*/\1/g" | sed 's/ *$//g')
+TIME=$(echo $MESSAGE | sed  -e "s/.*#time \(\([0-9]*h\)*[ ]*\([0-9]*m\)*\).*/\1/g" | sed 's/ *$//g')
+
+if [[ "$TIME" == "$MESSAGE" || "$TIME" == "" ]]; then
+  TIME="0h 0m"
+fi
+
+if [[ "$SUMMARY" == "$MESSAGE" ]]; then
+  echo "Couldnt create an issue of $MESSAGE"
+  exit 0
+fi
+
+FILENAME="/tmp/jira_tmp.json"
+
+echo "{
+   \"fields\": {
+      \"project\": { 
+          \"key\": \"$project\"
+       },
+       \"summary\": \"$SUMMARY\",
+       \"description\": \"$DESCRIPTION\",
+       \"assignee\": {
+       	  \"name\": \"$user\" 
+       },  
+       \"reporter\": {
+          \"name\": \"$user\" 
+       },  
+       \"issuetype\": {
+          \"name\": \"Task\"
+       }      
+    }
+}" > $FILENAME
+
+RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
+rm $FILENAME
+
+SELF=$(echo $RESPONSE | sed "s/.*\"self\":\"\([^\"]*\)\".*/\1/g");
+KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
+
+if [[ $KEY == "" ]]; then
+  echo "[ERR] Couldn't create the issue: $RESPONSE"
+  exit 0
+fi
+
+echo "{
+    \"comment\": \"$SUMMARY\",
+    \"timeSpent\": \"$TIME\"
+}" > $FILENAME
+
+RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$SELF/worklog")
+rm $FILENAME
+
+SELF=$(echo $RESPONSE | sed "s/.*\"self\":\"\([^\"]*\)\".*/\1/g");
+
+if [[ $KEY == "" ]]; then
+  echo "[ERR] Couldn't create the log entry: $RESPONSE"
+  exit 0
+fi
+
+echo -e "Created issue $KEY and logged $TIME successfully.\n$url/browse/$KEY"
+
+exit 0
