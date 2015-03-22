@@ -76,7 +76,7 @@ echo "{
 
 RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
 
-#Fetch the issue key from the json response
+# Fetch the issue key from the json response
 KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
 
 rm $FILENAME
@@ -86,7 +86,7 @@ if [[ $KEY == "" ]]; then
   exit 0
 fi
 
-#Append the correct issue-number to the commit message.
+# Append the correct issue-number to the commit message.
 cat $1 | sed -e "s/^$project /$KEY /g" > $1
 
 echo -e "[CREATED $KEY] $url/browse/$KEY"
