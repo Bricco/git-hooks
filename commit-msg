@@ -1,9 +1,22 @@
 #!/bin/bash
 
+# @Author Tom Honig tom.honig@bricco.se
+#
 # git commit-msg hook
-# Exempel:
-# git commit -m "BC Skapa ärende från git #time 2h 15m"
-# Skapar ett BC-ärende och loggar 2h 15m
+#
+# Creates a JIRA issue if the commit starts with the deffined JIRA project Key followed by a space and Issue summary.
+# The Issue number is then appended to the project Key, which makes it possible to use "jira smart commits" 
+# https://confluence.atlassian.com/display/Cloud/Processing+JIRA+issues+with+commit+messages
+#
+
+
+# We store the configuration we need as git config variables
+# Maybe not the best way to store the password... 
+# 
+# @ jira.project = JIRA project Key, e.g. JRE
+# @ jira.user = JIRA Username, e.g. admin.anderssson
+# @ jira.password = JIRA password
+# @ jira.url = https://mycompany.atlassian.net
 
 VARS=('project' 'user' 'password' 'url')
 ERROR_MESSAGE=""
@@ -20,25 +33,26 @@ if [[ "$ERROR_MESSAGE" != "" ]]; then
   exit 0
 fi
 
-DESCRIPTION=""
+# Check if the commit message starts with the project key.
 MESSAGE=$(grep "^$project " $1);
 
 if [[ "$MESSAGE" == "" ]]; then
   exit 0
 fi
 
+# Fetch the issue Summary = the text after the project Key and until the end or the first hashtag.
 SUMMARY=$(echo $MESSAGE | sed "s/$project \([^#]*\).*/\1/g" | sed 's/ *$//g')
-TIME=$(echo $MESSAGE | sed  -e "s/.*#time \(\([0-9]*h\)*[ ]*\([0-9]*m\)*\).*/\1/g" | sed 's/ *$//g')
 
-if [[ "$TIME" == "$MESSAGE" || "$TIME" == "" ]]; then
-  TIME="0h 0m"
-fi
-
-if [[ "$SUMMARY" == "$MESSAGE" ]]; then
-  echo "Couldnt create an issue of $MESSAGE"
+if [[ "$SUMMARY" == "$MESSAGE" || "$SUMMARY" == "" ]]; then
+  echo "[ERR] Couldn't parse an issue summary from $MESSAGE"
   exit 0
 fi
 
+
+# Create the issue with JIRA REST API 
+# See the documentation: https://developer.atlassian.com/jiradev/api-reference/jira-rest-apis
+
+# Store the json data in a temporary file.
 FILENAME="/tmp/jira_tmp.json"
 
 echo "{
@@ -61,31 +75,20 @@ echo "{
 }" > $FILENAME
 
 RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
-rm $FILENAME
 
-SELF=$(echo $RESPONSE | sed "s/.*\"self\":\"\([^\"]*\)\".*/\1/g");
+#Fetch the issue key from the json response
 KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
+
+rm $FILENAME
 
 if [[ $KEY == "" ]]; then
   echo "[ERR] Couldn't create the issue: $RESPONSE"
   exit 0
 fi
 
-echo "{
-    \"comment\": \"$SUMMARY\",
-    \"timeSpent\": \"$TIME\"
-}" > $FILENAME
+#Append the correct issue-number to the commit message.
+cat $1 | sed -e "s/^$project /$KEY /g" > $1
 
-RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$SELF/worklog")
-rm $FILENAME
-
-SELF=$(echo $RESPONSE | sed "s/.*\"self\":\"\([^\"]*\)\".*/\1/g");
-
-if [[ $KEY == "" ]]; then
-  echo "[ERR] Couldn't create the log entry: $RESPONSE"
-  exit 0
-fi
-
-echo -e "Created issue $KEY and logged $TIME successfully.\n$url/browse/$KEY"
+echo -e "Created issue $KEY - $SUMMARY.\n$url/browse/$KEY"
 
 exit 0
