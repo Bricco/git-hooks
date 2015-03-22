@@ -81,7 +81,7 @@ KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
 
 rm $FILENAME
 
-if [[ $KEY == "" ]]; then
+if [[ "$KEY" == "" || "$KEY" == "$RESPONSE"]]; then
   echo "[ERROR] Couldn't create the issue: $RESPONSE"
   exit 0
 fi
