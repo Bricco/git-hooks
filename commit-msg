@@ -44,7 +44,7 @@ fi
 SUMMARY=$(echo $MESSAGE | sed "s/$project \([^#]*\).*/\1/g" | sed 's/ *$//g')
 
 if [[ "$SUMMARY" == "$MESSAGE" || "$SUMMARY" == "" ]]; then
-  echo "[ERR] Couldn't parse an issue summary from $MESSAGE"
+  echo "[ERROR] Couldn't parse an issue summary from $MESSAGE"
   exit 0
 fi
 
@@ -82,13 +82,13 @@ KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
 rm $FILENAME
 
 if [[ $KEY == "" ]]; then
-  echo "[ERR] Couldn't create the issue: $RESPONSE"
+  echo "[ERROR] Couldn't create the issue: $RESPONSE"
   exit 0
 fi
 
 #Append the correct issue-number to the commit message.
 cat $1 | sed -e "s/^$project /$KEY /g" > $1
 
-echo -e "Created issue $KEY - $SUMMARY.\n$url/browse/$KEY"
+echo -e "[CREATED $KEY] $url/browse/$KEY"
 
 exit 0
