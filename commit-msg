@@ -75,11 +75,10 @@ echo "{
     }
 }" > $FILENAME
 
-#RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
+RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
 
 #Fetch the issue key from the json response
-#KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
-KEY="SFB-123"
+KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
 
 rm $FILENAME
 
