@@ -61,7 +61,7 @@ echo "{
           \"key\": \"$project\"
        },
        \"summary\": \"$SUMMARY\",
-       \"description\": \"$DESCRIPTION\",
+       \"description\": \"\",
        \"assignee\": {
        	  \"name\": \"$user\" 
        },  
