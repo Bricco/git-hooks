@@ -20,6 +20,7 @@
 
 VARS=('project' 'user' 'password' 'url')
 ERROR_MESSAGE=""
+LOG_FILE=$1
 
 for NAME in ${VARS[@]}; do
     eval $NAME="$(git config --get jira.$NAME)"
@@ -61,7 +62,7 @@ echo "{
           \"key\": \"$project\"
        },
        \"summary\": \"$SUMMARY\",
-       \"description\": \"\",
+       \"description\": \"$DESCRIPTION\",
        \"assignee\": {
        	  \"name\": \"$user\" 
        },  
@@ -74,21 +75,22 @@ echo "{
     }
 }" > $FILENAME
 
-RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
+#RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
 
-# Fetch the issue key from the json response
-KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
+#Fetch the issue key from the json response
+#KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
+KEY="SFB-123"
 
 rm $FILENAME
 
-if [[ "$KEY" == "" || "$KEY" == "$RESPONSE"]]; then
+if [[ $KEY == "" ]]; then
   echo "[ERROR] Couldn't create the issue: $RESPONSE"
   exit 0
 fi
 
-# Append the correct issue-number to the commit message.
-cat $1 | sed -e "s/^$project /$KEY /g" > $1
+#Append the correct issue-number to the commit message.
+echo $(cat $LOG_FILE | sed -e "s/^$project /$KEY /g") > $LOG_FILE
 
-echo -e "[CREATED $KEY] $url/browse/$KEY"
+echo -e "[CREATED $KEY] $SUMMARY $url/browse/$KEY"
 
 exit 0
