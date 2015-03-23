@@ -53,5 +53,5 @@ if [ "$ERRORS_BUFFER" != "" ]; then
     echo "PHP parse errors found. Fix errors and commit again."
     exit 1
 else
-    echo "No PHP parse errors found. Committed successfully."
+    echo "No PHP parse errors found."
 fi

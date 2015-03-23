@@ -4,8 +4,8 @@ Some Git hooks that can be useful to have.
 **Install:**
 ```
 git clone https://github.com/Bricco/git-hooks.git
-cp git-hooks/* MY-PROJECT/.git/hooks/
-chmod +x MY-PROJECT/.git/hooks/*
+chmod +x git-hooks/*
+ln -s git-hooks/* MY-PROJECT/.git/hooks/
 
 git config --add jira.project JRE
 git config --add jira.user admin.anderssson
