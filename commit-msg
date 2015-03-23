@@ -87,7 +87,7 @@ function commit_msg_create_issue {
             \"name\": \"Task\"
          },  
          \"fixVersions\": [{
-            \"name\": \"${FIXED_VERSIONS[$FIXED_VERSION]}\"
+            \"name\": \"$FIXED_VERSION\"
          }]   
       }
   }" > $FILENAME
@@ -140,15 +140,17 @@ function select_fixed_version {
 
   exec < /dev/tty
 
-  read -ep "Choose a fixed version: " FIXED_VERSION
+  read -ep "Choose a fixed version: " SELCTED_VERSION
 
   IFS=$OIFS
 
-  if [[ ! "$FIXED_VERSION" =~ ^[0-9]*$ ]]; then
+  if [[ ! "$SELCTED_VERSION" =~ ^[0-9]*$ ]]; then
     echo "No valid version selected. Defaults to 0 (${FIXED_VERSIONS[0]})"
-    FIXED_VERSION=0
+    SELCTED_VERSION=0
   fi
-
+  
+  FIXED_VERSION=${FIXED_VERSIONS[$SELCTED_VERSION]}
+  
   exec <&-
 
 }
