@@ -13,6 +13,8 @@ git config --add jira.password mysecret
 git config --add jira.url https://mycompany.atlassian.net
 ```
 
+
+
 ### 1. pre-commit
 Checking for php parse-errors and devel/xdebug debug code before the code is commited.
 
