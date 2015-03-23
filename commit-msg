@@ -21,9 +21,9 @@
 LOG_FILE=$1
 
 function commit_msg_main {
-  commit_msg_init;
-  commit_msg_create_issue;
-  exit 0;
+  commit_msg_init
+  commit_msg_create_issue
+  exit 0
 }
 
 function commit_msg_init {
@@ -61,7 +61,8 @@ function commit_msg_init {
 
 
 function commit_msg_create_issue {
-
+  
+  FIXED_VERSION=""
   select_fixed_version
 
   # Create the issue with JIRA REST API 
@@ -106,7 +107,6 @@ function commit_msg_create_issue {
   echo $(cat $LOG_FILE | sed -e "s/^$project /$KEY /g") > $LOG_FILE
 
   echo -e "[CREATED $KEY] \"$SUMMARY\" $url/browse/$KEY"
-
 }
 
 
@@ -147,14 +147,11 @@ function select_fixed_version {
     SELCTED_VERSION=0
   fi
 
-  if[[ $SELCTED_VERSION == 0 ]]; then
-    FIXED_VERSION=""
-  else
+  if[[ $SELCTED_VERSION != 0 ]]; then
     FIXED_VERSION=",\"fixVersions\":[{\"name\": \"${FIXED_VERSIONS[$SELCTED_VERSION]}\"}]"  
   fi
   
   exec <&-
-
 }
 
 commit_msg_main
