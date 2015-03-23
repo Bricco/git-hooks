@@ -85,10 +85,8 @@ function commit_msg_create_issue {
          },  
          \"issuetype\": {
             \"name\": \"Task\"
-         },  
-         \"fixVersions\": [{
-            \"name\": \"$FIXED_VERSION\"
-         }]   
+         }  
+         $FIXED_VERSION 
       }
   }" > $FILENAME
 
@@ -148,8 +146,12 @@ function select_fixed_version {
     echo "No valid version selected. Defaults to 0 (${FIXED_VERSIONS[0]})"
     SELCTED_VERSION=0
   fi
-  
-  FIXED_VERSION=${FIXED_VERSIONS[$SELCTED_VERSION]}
+
+  if[[ $SELCTED_VERSION == 0 ]]; then
+    FIXED_VERSION=""
+  else
+    FIXED_VERSION=",\"fixVersions\":[{\"name\": \"${FIXED_VERSIONS[$SELCTED_VERSION]}\"}]"  
+  fi
   
   exec <&-
 
