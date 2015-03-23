@@ -18,78 +18,140 @@
 # @ jira.password = JIRA password
 # @ jira.url = https://mycompany.atlassian.net
 
-VARS=('project' 'user' 'password' 'url')
-ERROR_MESSAGE=""
 LOG_FILE=$1
 
-for NAME in ${VARS[@]}; do
-    eval $NAME="$(git config --get jira.$NAME)"
-    if [[ "${!NAME}" == "" ]]; then
-      ERROR_MESSAGE="$ERROR_MESSAGE\ngit config --add jira.$NAME <$NAME>"
+function commit_msg_main {
+  commit_msg_init;
+  commit_msg_create_issue;
+  exit 0;
+}
+
+function commit_msg_init {
+
+  VARS=('project' 'user' 'password' 'url')
+  ERROR_MESSAGE=""
+
+  for NAME in ${VARS[@]}; do
+      eval $NAME="$(git config --get jira.$NAME)"
+      if [[ "${!NAME}" == "" ]]; then
+        ERROR_MESSAGE="$ERROR_MESSAGE\ngit config --add jira.$NAME <$NAME>"
+      fi
+  done
+
+  if [[ "$ERROR_MESSAGE" != "" ]]; then
+    echo -e "[ERROR] Fix the following configuration:$ERROR_MESSAGE"
+    exit 1 
+  fi
+
+  # Check if the commit message starts with the project key.
+  MESSAGE=$(grep "^$project " $LOG_FILE);
+
+  if [[ "$MESSAGE" == "" ]]; then
+    exit 0
+  fi
+
+  # Fetch the issue Summary = the text after the project Key and until the end or the first hashtag.
+  SUMMARY=$(echo $MESSAGE | sed "s/$project \([^#]*\).*/\1/g" | sed 's/ *$//g')
+
+  if [[ "$SUMMARY" == "$MESSAGE" || "$SUMMARY" == "" ]]; then
+    echo "[ERROR] Couldn't parse an issue summary from $MESSAGE"
+    exit 0
+  fi
+}
+
+
+function commit_msg_create_issue {
+
+  select_fixed_version
+
+  # Create the issue with JIRA REST API 
+  # See the documentation: https://developer.atlassian.com/jiradev/api-reference/jira-rest-apis
+
+  # Store the json data in a temporary file.
+  FILENAME="/tmp/jira_tmp.json"
+
+  echo "{
+     \"fields\": {
+        \"project\": { 
+            \"key\": \"$project\"
+         },
+         \"summary\": \"$SUMMARY\",
+         \"description\": \"$DESCRIPTION\",
+         \"assignee\": {
+            \"name\": \"$user\" 
+         },  
+         \"reporter\": {
+            \"name\": \"$user\" 
+         },  
+         \"issuetype\": {
+            \"name\": \"Task\"
+         },  
+         \"fixVersions\": [{
+            \"name\": \"${FIXED_VERSIONS[$FIXED_VERSION]}\"
+         }]   
+      }
+  }" > $FILENAME
+
+  RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
+
+  #Fetch the issue key from the json response
+  KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
+
+  rm $FILENAME
+
+  if [[ $KEY == "" ]]; then
+    echo "[ERROR] Couldn't create the issue: $RESPONSE"
+    exit 0
+  fi
+
+  #Append the correct issue-number to the commit message.
+  echo $(cat $LOG_FILE | sed -e "s/^$project /$KEY /g") > $LOG_FILE
+
+  echo -e "[CREATED $KEY] \"$SUMMARY\" $url/browse/$KEY"
+
+}
+
+
+function select_fixed_version {
+
+  # Fetch all versions for the project
+  RESPONSE=$(curl -sb -D- -u $user:$password -X GET "$url/rest/api/2/project/$project/versions")
+
+  # Parse a semicolon separated list from the json response
+  RELEASES=$(echo $RESPONSE | sed -e "s/{[^}]*name\":\"\([^\"]*\)\"[^}]*released\":\([^,]*\),[^}]*}[,]*/\1:\2;/g" | sed "s/\[\(.*\)\]/\1/g" | sed "s/;$//g")
+
+  OIFS=$IFS
+  IFS=';'
+
+  i=1
+
+  FIXED_VERSIONS=('')
+
+  echo "[0]  No Fix Version"
+
+  for VERSION in $RELEASES; do
+    #Skip all versions with release:true
+    if [[ "$VERSION" =~ false$ ]]; then
+      echo "[$i] " ${VERSION%:*}
+      FIXED_VERSIONS+=(${VERSION%:*})
     fi
-done
+    ((i+=1))
+  done
 
-if [[ "$ERROR_MESSAGE" != "" ]]; then
-  echo -e "Unable to connect to JIRA. Fix the following configuration:$ERROR_MESSAGE"
-  exit 0
-fi
+  exec < /dev/tty
 
-# Check if the commit message starts with the project key.
-MESSAGE=$(grep "^$project " $1);
+  read -ep "Choose a fixed version: " FIXED_VERSION
 
-if [[ "$MESSAGE" == "" ]]; then
-  exit 0
-fi
+  IFS=$OIFS
 
-# Fetch the issue Summary = the text after the project Key and until the end or the first hashtag.
-SUMMARY=$(echo $MESSAGE | sed "s/$project \([^#]*\).*/\1/g" | sed 's/ *$//g')
+  if [[ ! "$FIXED_VERSION" =~ ^[0-9]*$ ]]; then
+    echo "No valid version selected. Defaults to 0 (${FIXED_VERSIONS[0]})"
+    FIXED_VERSION=0
+  fi
 
-if [[ "$SUMMARY" == "$MESSAGE" || "$SUMMARY" == "" ]]; then
-  echo "[ERROR] Couldn't parse an issue summary from $MESSAGE"
-  exit 0
-fi
+  exec <&-
 
+}
 
-# Create the issue with JIRA REST API 
-# See the documentation: https://developer.atlassian.com/jiradev/api-reference/jira-rest-apis
-
-# Store the json data in a temporary file.
-FILENAME="/tmp/jira_tmp.json"
-
-echo "{
-   \"fields\": {
-      \"project\": { 
-          \"key\": \"$project\"
-       },
-       \"summary\": \"$SUMMARY\",
-       \"description\": \"$DESCRIPTION\",
-       \"assignee\": {
-       	  \"name\": \"$user\" 
-       },  
-       \"reporter\": {
-          \"name\": \"$user\" 
-       },  
-       \"issuetype\": {
-          \"name\": \"Task\"
-       }      
-    }
-}" > $FILENAME
-
-RESPONSE=$(curl -sb -D- -u $user:$password -X POST --data "@$FILENAME" -H "Content-Type: application/json" "$url/rest/api/2/issue/")
-
-#Fetch the issue key from the json response
-KEY=$(echo $RESPONSE | sed "s/.*\"key\":\"\([^\"]*\)\".*/\1/g");
-
-rm $FILENAME
-
-if [[ $KEY == "" ]]; then
-  echo "[ERROR] Couldn't create the issue: $RESPONSE"
-  exit 0
-fi
-
-#Append the correct issue-number to the commit message.
-echo $(cat $LOG_FILE | sed -e "s/^$project /$KEY /g") > $LOG_FILE
-
-echo -e "[CREATED $KEY] $SUMMARY $url/browse/$KEY"
-
-exit 0
+commit_msg_main
+exit 1
