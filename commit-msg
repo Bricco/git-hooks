@@ -158,4 +158,4 @@ function select_fixed_version {
 }
 
 commit_msg_main
-exit 1
+exit 0
