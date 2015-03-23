@@ -132,8 +132,8 @@ function select_fixed_version {
     if [[ "$VERSION" =~ false$ ]]; then
       echo "[$i] " ${VERSION%:*}
       FIXED_VERSIONS+=(${VERSION%:*})
+      ((i+=1))
     fi
-    ((i+=1))
   done
 
   exec < /dev/tty
