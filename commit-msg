@@ -77,7 +77,7 @@ function commit_msg_create_issue {
             \"key\": \"$project\"
          },
          \"summary\": \"$SUMMARY\",
-         \"description\": \"$DESCRIPTION\",
+         \"description\": \"\",
          \"assignee\": {
             \"name\": \"$user\" 
          },  
@@ -138,17 +138,17 @@ function select_fixed_version {
 
   exec < /dev/tty
 
-  read -ep "Choose a fixed version: " SELCTED_VERSION
+  read -ep "Choose a fixed version: " SELECTED
 
   IFS=$OIFS
 
-  if [[ ! "$SELCTED_VERSION" =~ ^[0-9]*$ ]]; then
+  if [[ ! "$SELECTED" =~ ^[0-9]*$ ]]; then
     echo "No valid version selected. Defaults to 0 (${FIXED_VERSIONS[0]})"
-    SELCTED_VERSION=0
+    SELECTED=0
   fi
 
-  if[[ $SELCTED_VERSION != 0 ]]; then
-    FIXED_VERSION=",\"fixVersions\":[{\"name\": \"${FIXED_VERSIONS[$SELCTED_VERSION]}\"}]"  
+  if[[ $SELECTED != 0 ]]; then
+    FIXED_VERSION=",\"fixVersions\":[{\"name\": \"${FIXED_VERSIONS[$SELECTED]}\"}]"  
   fi
   
   exec <&-
