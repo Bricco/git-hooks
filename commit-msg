@@ -147,7 +147,7 @@ function select_fixed_version {
     SELECTED=0
   fi
 
-  if[[ $SELECTED != 0 ]]; then
+  if [[ $SELECTED != 0 ]]; then
     FIXED_VERSION=",\"fixVersions\":[{\"name\": \"${FIXED_VERSIONS[$SELECTED]}\"}]"  
   fi
   
