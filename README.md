@@ -5,6 +5,7 @@ Some Git hooks that can be useful to have.
 ```
 git clone https://github.com/Bricco/git-hooks.git
 chmod +x git-hooks/*
+cp self-post-update .git/hooks/post-update
 ln -s git-hooks/* MyProject/.git/hooks/
 
 cd MyProject
